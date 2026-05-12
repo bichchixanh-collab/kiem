@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>仙劍天下 - XianJian Online MMORPG</title>
+  <link rel="stylesheet" href="./game-style.css">
+</head>
+<body>
+
+<!-- ============================================================ LOADING SCREEN ============================================================ -->
+<div id="loading-screen">
+  <div class="loading-decoration tl">龍</div>
+  <div class="loading-decoration tr">鳳</div>
+  <div class="loading-decoration bl">仙</div>
+  <div class="loading-decoration br">劍</div>
+  <div class="loading-logo">仙劍天下</div>
+  <div class="loading-subtitle">XIAN JIAN ONLINE · MMORPG</div>
+  <div class="loading-bar-wrap">
+    <div id="loading-progress"></div>
+  </div>
+  <div id="loading-status">連接伺服器...</div>
+</div>
+
+<!-- ============================================================ GAME CONTAINER ============================================================ -->
+<div id="game-container">
+
+  <!-- World Canvas -->
+  <canvas id="world-canvas"></canvas>
+
+  <!-- Atmosphere overlay -->
+  <div id="atmosphere-overlay"></div>
+
+  <!-- Fog overlay -->
+  <div id="fog-overlay" style="display:none;position:absolute;inset:0;background:radial-gradient(ellipse,transparent 30%,rgba(200,200,255,0.08) 70%);pointer-events:none;animation:fogPulse 6s ease-in-out infinite;z-index:2;"></div>
+  <style>
+    @keyframes fogPulse { 0%,100%{opacity:0.5;} 50%{opacity:1;} }
+  </style>
+
+  <!-- UI Layer -->
+  <div id="ui-layer">
+
+    <!-- TOP LEFT: Player Status -->
+    <div id="player-status">
+      <div class="corner-ornament tl"></div>
+      <div class="corner-ornament tr"></div>
+      <div class="corner-ornament bl"></div>
+      <div class="corner-ornament br"></div>
+      <div class="status-top-row">
+        <div id="avatar-frame">
+          <canvas id="avatar-canvas" width="60" height="60"></canvas>
+          <div class="avatar-level-badge" id="level-badge">1</div>
+        </div>
+        <div class="status-bars">
+          <div class="player-name-display" id="player-name">青雲劍士</div>
+          <div class="bar-container">
+            <div class="bar-label-row">
+              <span class="bar-label">氣血</span>
+              <span class="bar-value" id="hp-value">10000/10000</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" id="hp-bar"></div></div>
+          </div>
+          <div class="bar-container">
+            <div class="bar-label-row">
+              <span class="bar-label">靈力</span>
+              <span class="bar-value" id="mp-value">5000/5000</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" id="mp-bar"></div></div>
+          </div>
+          <div class="bar-container exp-bar-row">
+            <div class="bar-label-row">
+              <span class="bar-label">修為</span>
+              <span class="bar-value" id="exp-value">0%</span>
+            </div>
+            <div class="bar-track" style="height:5px;"><div class="bar-fill" id="exp-bar" style="height:100%;"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="status-combat-row">
+        <div class="combat-stat">
+          <span class="combat-stat-label">攻擊</span>
+          <span class="combat-stat-value" id="atk-value">1500</span>
+        </div>
+        <div class="combat-stat">
+          <span class="combat-stat-label">防禦</span>
+          <span class="combat-stat-value" id="def-value">300</span>
+        </div>
+        <div class="combat-stat">
+          <span class="combat-stat-label">金幣</span>
+          <span class="combat-stat-value" id="gold-display">0</span>
+        </div>
+        <div class="combat-stat">
+          <span class="combat-stat-label">等級</span>
+          <span class="combat-stat-value" id="lvl-display">1</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOP CENTER: Map Title -->
+    <div id="map-title">
+      <div class="map-title-frame">
+        <div class="map-name">青雲村</div>
+        <div class="map-subtitle">Azure Cloud Village · 新手區 Lv.1~10</div>
+        <div class="server-info">青龍一服 · 在線人數: 12,847 · 延遲: 18ms</div>
+      </div>
+    </div>
+
+    <!-- TOP RIGHT: Minimap -->
+    <div id="minimap-container">
+      <div class="minimap-frame">
+        <canvas id="minimap-canvas" width="110" height="110"></canvas>
+        <div class="minimap-border"></div>
+      </div>
+      <div class="minimap-label">大地圖</div>
+    </div>
+
+    <!-- Buff bar (below status) -->
+    <div id="buff-bar"></div>
+
+    <!-- Notification area -->
+    <div id="notification-area"></div>
+
+    <!-- Region side panel -->
+    <div id="region-panel">
+      <div class="region-panel-title">📍 當前區域</div>
+      <div class="region-stat-row">
+        <span class="region-stat-label">等級範圍</span>
+        <span class="region-stat-value">Lv.1~10</span>
+      </div>
+      <div class="region-stat-row">
+        <span class="region-stat-label">類型</span>
+        <span class="region-stat-value">village</span>
+      </div>
+      <div class="region-stat-row">
+        <span class="region-stat-label">怪物數</span>
+        <span class="region-stat-value">—</span>
+      </div>
+      <div class="region-lore-text">相傳此地乃上古仙人結界所護……</div>
+    </div>
+
+    <!-- BOSS warning banner -->
+    <div id="boss-warning">
+      <div class="boss-warning-text">⚠ BOSS降臨 ⚠</div>
+    </div>
+
+    <!-- BOSS HP bar -->
+    <div id="boss-hp-bar">
+      <div class="boss-hp-frame">
+        <div class="boss-hp-name">BOSS</div>
+        <div class="boss-hp-track">
+          <div id="boss-hp-fill"></div>
+        </div>
+        <div id="boss-hp-text"></div>
+      </div>
+    </div>
+
+    <!-- World ticker -->
+    <div id="world-ticker">
+      <div class="ticker-text">載入世界公告中...</div>
+    </div>
+
+    <!-- Chat box -->
+    <div id="chat-box">
+      <div id="chat-messages"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="按Enter發送..." maxlength="60">
+        <button class="chat-send-btn">發送</button>
+      </div>
+    </div>
+
+    <!-- BOTTOM LEFT: Joystick (mobile) -->
+    <div id="joystick-area">
+      <div id="joystick-thumb"></div>
+    </div>
+
+    <!-- BOTTOM CENTER: Skill bar -->
+    <div id="skill-bar">
+      <!-- Skills dynamically initialized by game.js -->
+      <div class="skill-btn" data-skill="0">
+        <div class="skill-frame">
+          <div class="skill-icon-display"></div>
+          <div class="skill-cd-overlay" id="cd-0"></div>
+        </div>
+        <div class="skill-key">Q</div>
+        <div class="skill-name">炎斬</div>
+      </div>
+      <div class="skill-btn" data-skill="1">
+        <div class="skill-frame">
+          <div class="skill-icon-display"></div>
+          <div class="skill-cd-overlay" id="cd-1"></div>
+        </div>
+        <div class="skill-key">W</div>
+        <div class="skill-name">冰爆</div>
+      </div>
+      <div class="skill-btn" data-skill="2">
+        <div class="skill-frame">
+          <div class="skill-icon-display"></div>
+          <div class="skill-cd-overlay" id="cd-2"></div>
+        </div>
+        <div class="skill-key">E</div>
+        <div class="skill-name">雷霆</div>
+      </div>
+      <!-- Main attack -->
+      <div id="main-attack">
+        <div class="attack-icon">⚔</div>
+        <div class="attack-label">攻擊</div>
+      </div>
+      <div class="skill-btn" data-skill="3">
+        <div class="skill-frame">
+          <div class="skill-icon-display"></div>
+          <div class="skill-cd-overlay" id="cd-3"></div>
+        </div>
+        <div class="skill-key">R</div>
+        <div class="skill-name">氣功</div>
+      </div>
+      <div class="skill-btn" data-skill="4">
+        <div class="skill-frame">
+          <div class="skill-icon-display"></div>
+          <div class="skill-cd-overlay" id="cd-4"></div>
+        </div>
+        <div class="skill-key">F</div>
+        <div class="skill-name">疾風</div>
+      </div>
+      <div class="skill-btn" data-skill="5">
+        <div class="skill-frame">
+          <div class="skill-icon-display"></div>
+          <div class="skill-cd-overlay" id="cd-5"></div>
+        </div>
+        <div class="skill-key">G</div>
+        <div class="skill-name">護甲</div>
+      </div>
+    </div>
+
+    <!-- BOTTOM RIGHT: Quick buttons -->
+    <div id="quick-buttons">
+      <div class="quick-btn qb-bag">
+        <div class="qb-icon">🎒</div>
+        <div class="qb-label">背包</div>
+      </div>
+      <div class="quick-btn qb-quest">
+        <div class="qb-icon">📜</div>
+        <div class="qb-label">任務</div>
+      </div>
+      <div class="quick-btn qb-map" id="qb-map">
+        <div class="qb-icon">🗺️</div>
+        <div class="qb-label">地圖</div>
+      </div>
+      <div class="quick-btn qb-char" id="qb-char">
+        <div class="qb-icon">👤</div>
+        <div class="qb-label">角色</div>
+      </div>
+    </div>
+
+  </div><!-- end ui-layer -->
+
+  <!-- ============== GAME PANELS ============== -->
+
+  <!-- Inventory Panel -->
+  <div class="game-panel" id="inventory-panel">
+    <div class="panel-header">
+      <span class="panel-title">🎒 儲物袋</span>
+      <button class="panel-close">✕</button>
+    </div>
+    <div class="inventory-grid" id="inventory-grid">
+      <!-- Slots generated by JS -->
+    </div>
+    <div style="padding:6px 10px;font-size:9px;color:rgba(200,160,60,0.6);border-top:1px solid rgba(200,160,40,0.2);">
+      負重: 0/200 · 金幣: <span id="inv-gold">0</span>
+    </div>
+  </div>
+
+  <!-- Quest Panel -->
+  <div class="game-panel" id="quest-panel">
+    <div class="panel-header">
+      <span class="panel-title">📜 任務日誌</span>
+      <button class="panel-close">✕</button>
+    </div>
+    <div class="quest-list" id="quest-list-container">
+      <div style="padding:12px;color:rgba(200,180,130,0.6);font-size:10px;text-align:center;">
+        暫無任務，去找NPC接取任務吧！
+      </div>
+    </div>
+  </div>
+
+  <!-- Region Map Panel -->
+  <div class="game-panel" id="region-map-panel">
+    <div class="panel-header">
+      <span class="panel-title">🗺️ 世界地圖</span>
+      <button class="panel-close">✕</button>
+    </div>
+    <div style="padding:6px 10px;font-size:9px;color:rgba(200,160,60,0.7);">點擊區域可快速傳送（需已解鎖）</div>
+    <div class="region-map-grid" id="region-map-grid"></div>
+  </div>
+
+  <!-- NPC Dialog Panel -->
+  <div class="game-panel" id="npc-dialog-panel">
+    <div class="npc-dialog-header">
+      <div class="npc-dialog-portrait" id="npc-portrait">👤</div>
+      <div class="npc-dialog-name-role">
+        <div class="npc-dialog-name" id="npc-name">NPC</div>
+        <div class="npc-dialog-role" id="npc-role">角色</div>
+      </div>
+      <button class="panel-close" style="margin-left:auto;">✕</button>
+    </div>
+    <div class="npc-dialog-body">
+      <div class="npc-dialog-text" id="npc-text">（靜默）</div>
+      <div class="npc-dialog-options" id="npc-options"></div>
+    </div>
+  </div>
+
+  <!-- Lore Tooltip -->
+  <div id="lore-tooltip">
+    <div class="lore-tooltip-title">典故</div>
+    <div class="lore-tooltip-text"></div>
+  </div>
+
+  <!-- Region Banner -->
+  <div id="region-banner">
+    <div class="region-banner-name">青雲村</div>
+    <div class="region-banner-sub">Azure Cloud Village · Lv.1~10 · VILLAGE</div>
+  </div>
+
+  <!-- Dungeon Transition Overlay -->
+  <div id="dungeon-overlay">
+    <div class="dungeon-enter-text">進入副本</div>
+    <div class="dungeon-enter-sub">载入中...</div>
+  </div>
+
+</div><!-- end game-container -->
+
+<!-- ============================================================ SCRIPTS ============================================================ -->
+<script src="./world-data.js"></script>
+<script src="./game-core.js"></script>
+<script src="./expansion.js"></script>
+
+</body>
+</html>
